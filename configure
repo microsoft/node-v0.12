@@ -333,6 +333,12 @@ parser.add_option('--enable-static',
     dest='enable_static',
     help='build as static library')
 
+parser.add_option('--engine',
+    action='store',
+    dest='engine',
+    help='Use specified JS engine (default is V8)')
+
+
 (options, args) = parser.parse_args()
 
 # Expand ~ in the install prefix now, it gets written to multiple files.
@@ -483,6 +489,11 @@ def check_compiler(o):
 def cc_macros():
   """Checks predefined macros using the CC command."""
 
+  if os.name == 'nt':
+    k = {}
+    k['__ARM_ARCH_7__'] = True
+    k['__ARM_NEON__'] = True
+    return k
   try:
     p = subprocess.Popen(shlex.split(CC) + ['-dM', '-E', '-'],
                          stdin=subprocess.PIPE,
@@ -1024,6 +1035,10 @@ def configure_intl(o):
         pprint.pformat(icu_config, indent=2) + '\n')
   return  # end of configure_intl
 
+def configure_engine(o):
+  engine = options.engine or 'v8'
+  o['variables']['node_engine'] = engine.lower()
+
 output = {
   'variables': { 'python': sys.executable },
   'include_dirs': [],
@@ -1051,6 +1066,7 @@ configure_openssl(output)
 configure_winsdk(output)
 configure_intl(output)
 configure_fullystatic(output)
+configure_engine(output)
 
 # variables should be a root level element,
 # move everything else to target_defaults

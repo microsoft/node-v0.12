@@ -36,6 +36,8 @@ set noperfctr_msi_arg=
 set i18n_arg=
 set download_arg=
 set release_urls_arg=
+set engine=v8
+set openssl_no_asm=
 
 :next-arg
 set build_release=
@@ -46,6 +48,7 @@ if /i "%1"=="clean"         set target=Clean&goto arg-ok
 if /i "%1"=="ia32"          set target_arch=x86&goto arg-ok
 if /i "%1"=="x86"           set target_arch=x86&goto arg-ok
 if /i "%1"=="x64"           set target_arch=x64&goto arg-ok
+if /i "%1"=="arm"           set target_arch=arm&goto arg-ok
 if /i "%1"=="noprojgen"     set noprojgen=1&goto arg-ok
 if /i "%1"=="nobuild"       set nobuild=1&goto arg-ok
 if /i "%1"=="nosign"        set nosign=1&goto arg-ok
@@ -71,6 +74,9 @@ if /i "%1"=="full-icu"      set i18n_arg=%1&goto arg-ok
 if /i "%1"=="intl-none"     set i18n_arg=%1&goto arg-ok
 if /i "%1"=="download-all"  set download_arg="--download=all"&goto arg-ok
 if /i "%1"=="ignore-flaky"  set test_args=%test_args% --flaky-tests=dontcare&goto arg-ok
+if /i "%1"=="v8"            set engine=v8&goto arg-ok
+if /i "%1"=="chakra"        set engine=chakra&goto arg-ok
+if /i "%1"=="openssl-no-asm" set openssl_no_asm=--openssl-no-asm&goto arg-ok
 
 echo Warning: ignoring invalid command line option `%1`.
 
@@ -89,6 +95,9 @@ if defined build_release (
 
 
 :args-done
+if "%target_arch%"=="arm" (
+    if not "%openssl_no_asm%"=="--openssl-no-asm" goto arm-requires-openssl-no-asm
+)
 if "%config%"=="Debug" set debug_arg=--debug
 if defined nosnapshot set snapshot_arg=--without-snapshot
 if defined noetw set noetw_arg=--without-etw& set noetw_msi_arg=/p:NoETW=1
@@ -163,7 +172,7 @@ goto run
 if defined noprojgen goto msbuild
 
 @rem Generate the VS project.
-python configure %download_arg% %i18n_arg% %debug_arg% %snapshot_arg% %noetw_arg% %noperfctr_arg% --dest-cpu=%target_arch% --tag=%TAG%
+python configure %download_arg% %i18n_arg% %debug_arg% %snapshot_arg% %noetw_arg% %noperfctr_arg% --engine=%engine% %openssl_no_asm% --dest-cpu=%target_arch% --tag=%TAG%
 if errorlevel 1 goto create-msvs-files-failed
 if not exist node.sln goto create-msvs-files-failed
 echo Project files generated.
@@ -251,6 +260,11 @@ goto exit
 
 :create-msvs-files-failed
 echo Failed to create vc project files.
+goto exit
+
+:arm-requires-openssl-no-asm
+echo openssl asm is currently not supported on arm
+echo use 'openssl-no-asm' as additional argument
 goto exit
 
 :help
