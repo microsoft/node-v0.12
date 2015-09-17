@@ -150,6 +150,9 @@
           }],
         ]
       }],
+      ['OS=="win" and target_arch=="arm"', {
+        'defines': ['__arm__'],
+      }],
       ['is_clang==1 or gcc_version>=43', {
         'cflags': ['-Wno-old-style-declaration'],
       }],

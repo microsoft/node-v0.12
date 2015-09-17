@@ -13,6 +13,7 @@
     'node_shared_openssl%': 'false',
     'node_v8_options%': '',
     'node_target_type%': 'executable',
+    'node_engine%': 'v8',
     'library_files': [
       'src/node.js',
       'lib/_debug_agent.js',
@@ -84,8 +85,6 @@
       'dependencies': [
         'node_js2c#host',
         'deps/cares/cares.gyp:cares',
-        'deps/v8/tools/gyp/v8.gyp:v8',
-        'deps/v8/tools/gyp/v8.gyp:v8_libplatform'
       ],
 
       'include_dirs': [
@@ -93,7 +92,6 @@
         'tools/msvs/genfiles',
         'deps/uv/src/ares',
         '<(SHARED_INTERMEDIATE_DIR)', # for node_natives.h
-        'deps/v8' # include/v8_platform.h
       ],
 
       'sources': [
@@ -340,6 +338,23 @@
             }],
           ],
         }],
+
+        [ 'node_engine=="v8"', {
+          'include_dirs': [
+            'deps/v8' # include/v8_platform.h
+          ],
+          'dependencies': [
+            'deps/v8/tools/gyp/v8.gyp:v8',
+            'deps/v8/tools/gyp/v8.gyp:v8_libplatform'
+          ],
+        }],
+        ['node_engine=="chakra"', {
+          'include_dirs': [
+            'deps/chakrashim' # include/v8_platform.h
+          ],
+          'dependencies': [ 'deps/chakrashim/chakrashim.gyp:chakrashim' ],
+        }],
+
         [ 'node_shared_zlib=="false"', {
           'dependencies': [ 'deps/zlib/zlib.gyp:zlib' ],
         }],
@@ -638,13 +653,29 @@
       'type': 'executable',
       'dependencies': [
         'deps/gtest/gtest.gyp:gtest',
-        'deps/v8/tools/gyp/v8.gyp:v8',
-        'deps/v8/tools/gyp/v8.gyp:v8_libplatform'
       ],
       'include_dirs': [
         'src',
-        'deps/v8/include'
       ],
+      'conditions': [
+        [ 'node_engine=="v8"', {
+          'include_dirs': [
+            'deps/v8/include'
+          ],
+          'dependencies': [
+            'deps/v8/tools/gyp/v8.gyp:v8',
+            'deps/v8/tools/gyp/v8.gyp:v8_libplatform'
+          ],
+        }],
+        ['node_engine=="chakra"', {
+          'dependencies': [ 'deps/chakrashim/chakrashim.gyp:chakrashim' ],
+        }],
+      ],
+      'msvs_settings': {
+        'VCLinkerTool': {
+          'SubSystem': 1, # /subsystem:console
+        },
+      },
       'defines': [
         # gtest's ASSERT macros conflict with our own.
         'GTEST_DONT_DEFINE_ASSERT_EQ=1',
